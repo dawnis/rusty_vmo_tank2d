@@ -79,11 +79,11 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
         translation_x = -550.0;
     }
 
-    if translation_y < -360.0 {
-        translation_y = 360.0;
+    if translation_y < -250.0 {
+        translation_y = -250.0;
     }
-    else if translation_y > 360.0 {
-        translation_y = -360.0;
+    else if translation_y > 250.0 {
+        translation_y = 250.0;
     }
 
     roti.translation.x = translation_x;
@@ -91,7 +91,7 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
 
     let velocity_param_display = engine.texts.get_mut("velocity_param_display").unwrap();
     velocity_param_display.value = format!(
-        "Velocity: {:.2}     Rotation: {:.2}, ({:.2}, {:.2})",
-        game_state.roti_linear_velocity, game_state.roti_rotational_velocity, roti.translation.x, roti.translation.y
+        "Velocity: {:.0}     Rotation: {:.0})",
+        game_state.roti_linear_velocity, game_state.roti_rotational_velocity
     );
 }
