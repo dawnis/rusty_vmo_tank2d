@@ -4,7 +4,7 @@ const GRAVITATIONAL_CONSTANT: f32 = -9.8;
 const FLOW_CONSTANT: f32 = 0.0;
 const FRICTIONAL_FORCE: f32 = 0.1;
 const ROTI_ROTATIONAL_ACCEL: f32 = 0.2;
-const ROTI_ACCEL: f32 = 1;
+const ROTI_ACCEL: f32 = 1.0;
 
 struct GameState {
     roti_linear_velocity: f32,
@@ -69,12 +69,29 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
     let x_vector_vel = game_state.roti_linear_velocity * roti.rotation.cos();
     let y_vector_vel = game_state.roti_linear_velocity * roti.rotation.sin();
 
-    roti.translation.x += engine.delta_f32 * x_vector_vel;
-    roti.translation.y += engine.delta_f32 * y_vector_vel;
+    let mut translation_x = roti.translation.x + engine.delta_f32 * x_vector_vel;
+    let mut translation_y = roti.translation.y + engine.delta_f32 * y_vector_vel;
+
+    if translation_x < -550.0 {
+        translation_x = 550.0;
+    }
+    else if translation_x > 550.0 {
+        translation_x = -550.0;
+    }
+
+    if translation_y < -360.0 {
+        translation_y = 360.0;
+    }
+    else if translation_y > 360.0 {
+        translation_y = -360.0;
+    }
+
+    roti.translation.x = translation_x;
+    roti.translation.y = translation_y;
 
     let velocity_param_display = engine.texts.get_mut("velocity_param_display").unwrap();
     velocity_param_display.value = format!(
-        "Velocity: {}     Rotation: {}",
-        game_state.roti_linear_velocity, game_state.roti_rotational_velocity
+        "Velocity: {:.2}     Rotation: {:.2}, ({:.2}, {:.2})",
+        game_state.roti_linear_velocity, game_state.roti_rotational_velocity, roti.translation.x, roti.translation.y
     );
 }
