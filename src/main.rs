@@ -1,7 +1,7 @@
 use rusty_engine::prelude::*;
 
-const GRAVITATIONAL_CONSTANT: f32 = -9.8;
-const FLOW_CONSTANT: f32 = 0.0;
+const GRAVITATIONAL_CONSTANT: f32 = -20.8;
+const FLOW_CONSTANT: f32 = 40.0;
 const FRICTIONAL_FORCE: f32 = 0.1;
 const ROTI_ROTATIONAL_ACCEL: f32 = 0.2;
 const ROTI_ACCEL: f32 = 1.0;
@@ -66,8 +66,8 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
 
     roti.rotation += std::f32::consts::PI * engine.delta_f32 * game_state.roti_rotational_velocity;
 
-    let x_vector_vel = game_state.roti_linear_velocity * roti.rotation.cos();
-    let y_vector_vel = game_state.roti_linear_velocity * roti.rotation.sin();
+    let x_vector_vel = game_state.roti_linear_velocity * roti.rotation.cos() + FLOW_CONSTANT;
+    let y_vector_vel = game_state.roti_linear_velocity * roti.rotation.sin() + GRAVITATIONAL_CONSTANT;
 
     let mut translation_x = roti.translation.x + engine.delta_f32 * x_vector_vel;
     let mut translation_y = roti.translation.y + engine.delta_f32 * y_vector_vel;
@@ -91,7 +91,7 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
 
     let velocity_param_display = engine.texts.get_mut("velocity_param_display").unwrap();
     velocity_param_display.value = format!(
-        "Velocity: {:.0}     Rotation: {:.0})",
+        "Velocity: {:.0}     Rotation: {:.0}",
         game_state.roti_linear_velocity, game_state.roti_rotational_velocity
     );
 }
