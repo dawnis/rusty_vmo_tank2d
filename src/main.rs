@@ -1,3 +1,4 @@
+use rand::prelude::*;
 use rusty_engine::prelude::*;
 
 const GRAVITATIONAL_CONSTANT: f32 = -20.8;
@@ -9,6 +10,7 @@ const ROTI_ACCEL: f32 = 1.0;
 struct GameState {
     roti_linear_velocity: f32,
     roti_rotational_velocity: f32,
+    food_colllected: i32,
 }
 
 fn main() {
@@ -17,12 +19,21 @@ fn main() {
 
     let sprite = game.add_sprite("roti", SpritePreset::RacingBarrelRed);
     sprite.scale = 1.0;
+    sprite.collision = true;
 
     let velocity_param_display =
-        game.add_text("velocity_param_display", "Velocity: 0.0      Rotation: 0.0");
+        game.add_text("velocity_param_display", "Velocity: 0     Rotation: 0     Food: 0");
     velocity_param_display.translation = Vec2::new(250.0, 320.0);
 
-    game.audio_manager.play_music(MusicPreset::Classy8Bit, 1.0);
+    let obstacle_presets = vec![SpritePreset::RacingBarrelBlue];
+
+    for (i, preset) in (0..5).into_iter().enumerate() {
+        let obst = game.add_sprite(format!("food{}", i), SpritePreset::RollingBallBlue);
+        obst.layer = 5.0;
+        obst.collision = true;
+        obst.translation.x = thread_rng().gen_range(-550.00..550.0);
+        obst.translation.y = thread_rng().gen_range(-250.0..250.0);
+    }
 
     // Add one or more functions with logic for your game. When the game is run, the logic
     // functions will run in the order they were added.
@@ -31,6 +42,7 @@ fn main() {
     let initial_game_state = GameState {
         roti_linear_velocity: 0.0,
         roti_rotational_velocity: 0.0,
+        food_colllected: 0,
     };
     game.run(initial_game_state);
 }
@@ -49,8 +61,7 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
     };
 
     if engine.keyboard_state.pressed(KeyCode::Up) {
-        game_state.roti_linear_velocity =
-            game_state.roti_linear_velocity + ROTI_ACCEL
+        game_state.roti_linear_velocity = game_state.roti_linear_velocity + ROTI_ACCEL
     };
 
     game_state.roti_rotational_velocity = game_state.roti_rotational_velocity - FRICTIONAL_FORCE;
@@ -67,31 +78,46 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
     roti.rotation += std::f32::consts::PI * engine.delta_f32 * game_state.roti_rotational_velocity;
 
     let x_vector_vel = game_state.roti_linear_velocity * roti.rotation.cos() + FLOW_CONSTANT;
-    let y_vector_vel = game_state.roti_linear_velocity * roti.rotation.sin() + GRAVITATIONAL_CONSTANT;
+    let y_vector_vel =
+        game_state.roti_linear_velocity * roti.rotation.sin() + GRAVITATIONAL_CONSTANT;
 
     let mut translation_x = roti.translation.x + engine.delta_f32 * x_vector_vel;
     let mut translation_y = roti.translation.y + engine.delta_f32 * y_vector_vel;
 
     if translation_x < -550.0 {
         translation_x = 550.0;
-    }
-    else if translation_x > 550.0 {
+    } else if translation_x > 550.0 {
         translation_x = -550.0;
     }
 
     if translation_y < -250.0 {
         translation_y = -250.0;
-    }
-    else if translation_y > 250.0 {
+    } else if translation_y > 250.0 {
         translation_y = 250.0;
     }
 
     roti.translation.x = translation_x;
     roti.translation.y = translation_y;
 
+    for event in engine.collision_events.drain(..) {
+        if !event.pair.either_contains("roti") || event.state.is_end() {
+            continue;
+        }
+
+        game_state.food_colllected += 1;
+        
+        let fb = if event.pair.1 == "roti" { event.pair.0 } else { event.pair.1 };
+
+        let food_b = engine.sprites.get_mut(&fb).unwrap();
+
+        food_b.translation.x = thread_rng().gen_range(-550.00..550.0);
+        food_b.translation.y = thread_rng().gen_range(-250.0..250.0);
+
+    }
+
     let velocity_param_display = engine.texts.get_mut("velocity_param_display").unwrap();
     velocity_param_display.value = format!(
-        "Velocity: {:.0}     Rotation: {:.0}",
-        game_state.roti_linear_velocity, game_state.roti_rotational_velocity
+        "Velocity: {:.0}     Rotation: {:.0}     Food: {}",
+        game_state.roti_linear_velocity, game_state.roti_rotational_velocity, game_state.food_colllected
     );
 }
