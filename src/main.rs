@@ -1,5 +1,6 @@
 use rand::prelude::*;
 use rusty_engine::prelude::*;
+use rusty_vmo_tank2d::VmoHost;
 
 const GRAVITATIONAL_CONSTANT: f32 = -20.8;
 const FLOW_CONSTANT: f32 = 40.0;
@@ -8,6 +9,8 @@ const ROTI_ROTATIONAL_ACCEL: f32 = 0.2;
 const ROTI_ACCEL: f32 = 1.0;
 
 struct GameState {
+    control_module: VmoHost,
+    manual_control: bool,
     roti_linear_velocity: f32,
     roti_rotational_velocity: f32,
     food_colllected: i32,
@@ -15,14 +18,17 @@ struct GameState {
 
 fn main() {
     // Create a game
+
     let mut game = Game::new();
 
     let sprite = game.add_sprite("roti", SpritePreset::RacingBarrelRed);
     sprite.scale = 1.0;
     sprite.collision = true;
 
-    let velocity_param_display =
-        game.add_text("velocity_param_display", "Velocity: 0     Rotation: 0     Food: 0");
+    let velocity_param_display = game.add_text(
+        "velocity_param_display",
+        "Velocity: 0     Rotation: 0     Food: 0",
+    );
     velocity_param_display.translation = Vec2::new(250.0, 320.0);
 
     let obstacle_presets = vec![SpritePreset::RacingBarrelBlue];
@@ -39,7 +45,15 @@ fn main() {
     // functions will run in the order they were added.
     game.add_logic(game_logic);
     // Run the game, with an initial state
+    //
+    let control_module = VmoHost {
+        velocity_out: 32.,
+        rotation_out: 180.,
+    };
+
     let initial_game_state = GameState {
+        control_module,
+        manual_control: true,
         roti_linear_velocity: 0.0,
         roti_rotational_velocity: 0.0,
         food_colllected: 0,
@@ -55,20 +69,38 @@ fn main() {
 fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
     let roti = engine.sprites.get_mut("roti").unwrap();
 
-    if engine.keyboard_state.pressed(KeyCode::Right) {
-        game_state.roti_rotational_velocity =
-            game_state.roti_rotational_velocity + ROTI_ROTATIONAL_ACCEL
-    };
+    //switch between VmoHost and manual control
+    if engine.keyboard_state.pressed(KeyCode::K) {
+        game_state.manual_control = !game_state.manual_control;
+    }
 
-    if engine.keyboard_state.pressed(KeyCode::Up) {
-        game_state.roti_linear_velocity = game_state.roti_linear_velocity + ROTI_ACCEL
-    };
+    if game_state.manual_control {
+        if engine.keyboard_state.pressed(KeyCode::Right) {
+            game_state.roti_rotational_velocity =
+                game_state.roti_rotational_velocity + ROTI_ROTATIONAL_ACCEL
+        };
+
+        if engine.keyboard_state.pressed(KeyCode::Up) {
+            game_state.roti_linear_velocity = game_state.roti_linear_velocity + ROTI_ACCEL
+        };
+    } else {
+        game_state.roti_linear_velocity = game_state.roti_linear_velocity + game_state.control_module.velocity_out;
+        game_state.roti_rotational_velocity = game_state.control_module.rotation_out;
+    }
 
     game_state.roti_rotational_velocity = game_state.roti_rotational_velocity - FRICTIONAL_FORCE;
     game_state.roti_linear_velocity = game_state.roti_linear_velocity - FRICTIONAL_FORCE;
 
     if game_state.roti_rotational_velocity < 0.0 {
         game_state.roti_rotational_velocity = 0.0
+    };
+
+    if game_state.roti_rotational_velocity > 180.0 {
+        game_state.roti_rotational_velocity = 180.0
+    };
+
+    if game_state.roti_linear_velocity > 500.0 {
+        game_state.roti_linear_velocity = 500.0
     };
 
     if game_state.roti_linear_velocity < 0.0 {
@@ -105,19 +137,24 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
         }
 
         game_state.food_colllected += 1;
-        
-        let fb = if event.pair.1 == "roti" { event.pair.0 } else { event.pair.1 };
+
+        let fb = if event.pair.1 == "roti" {
+            event.pair.0
+        } else {
+            event.pair.1
+        };
 
         let food_b = engine.sprites.get_mut(&fb).unwrap();
 
         food_b.translation.x = thread_rng().gen_range(-550.00..550.0);
         food_b.translation.y = thread_rng().gen_range(-250.0..250.0);
-
     }
 
     let velocity_param_display = engine.texts.get_mut("velocity_param_display").unwrap();
     velocity_param_display.value = format!(
         "Velocity: {:.0}     Rotation: {:.0}     Food: {}",
-        game_state.roti_linear_velocity, game_state.roti_rotational_velocity, game_state.food_colllected
+        game_state.roti_linear_velocity,
+        game_state.roti_rotational_velocity,
+        game_state.food_colllected
     );
 }
