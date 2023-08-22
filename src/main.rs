@@ -46,10 +46,7 @@ fn main() {
     game.add_logic(game_logic);
     // Run the game, with an initial state
     //
-    let control_module = VmoHost {
-        velocity_out: 32.,
-        rotation_out: 180.,
-    };
+    let control_module = VmoHost {};
 
     let initial_game_state = GameState {
         control_module,
@@ -84,8 +81,8 @@ fn game_logic(engine: &mut Engine, game_state: &mut GameState) {
             game_state.roti_linear_velocity = game_state.roti_linear_velocity + ROTI_ACCEL
         };
     } else {
-        game_state.roti_linear_velocity = game_state.roti_linear_velocity + game_state.control_module.velocity_out;
-        game_state.roti_rotational_velocity = game_state.control_module.rotation_out;
+        game_state.roti_linear_velocity = game_state.roti_linear_velocity + game_state.control_module.fwd_accel();
+        game_state.roti_rotational_velocity = game_state.control_module.rot_accel();
     }
 
     game_state.roti_rotational_velocity = game_state.roti_rotational_velocity - FRICTIONAL_FORCE;
